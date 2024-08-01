@@ -1,0 +1,33 @@
+env:
+ bookingDevUrl: "http://20.244.61.17:8080/graphql"
+ socialMediaUrl: "https://cx-api.locobuzz.com/api/Tickets/InstagramBrandPostList"
+ rateAgentPromoUrl: "http://ihcl-hudiniservice:8085/v1/rate-promo-availability"
+ sebBookingURL: "https://uatsebappservices.tajhotels.com/api/SEBCRS/SEBBookingRequest"
+ hudiniAuthEmail: "tajdev.support@hudini.io"
+ hudiniAuthPass: "IHCLHudiniD#2023"
+ redisKey: "vzaLORNA7cO9HjIDYg32CTqElV6CzGziDAzCaGRlwCY"
+ redisHost: "app-dev-redis.redis.cache.windows.net"
+ redisPort: "6380"
+ brandName: "tajhotelcorp"
+ requestTimeoutMillis : "120000"
+ sebUserName: "raju.rathod"
+ sebPassword: "Welcome@123"
+ sebDomain: "Test"
+ chamberRateFilter : "RTG"
+ memberTierChambers : "chamber"
+ APPLICATIONINSIGHTS_CONNECTION_STRING: "InstrumentationKey=66e000d8-fffd-4ab5-ad33-b475a974844f;IngestionEndpoint=https://centralindia-0.in.applicationinsights.azure.com/;LiveEndpoint=https://centralindia.livediagnostics.monitor.azure.com/"
+
+resources:
+ limits:
+  #cpu: "1"
+  memory: 512Mi
+ requests:
+   #cpu: "1"
+   memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 70

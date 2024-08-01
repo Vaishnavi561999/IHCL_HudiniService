@@ -1,0 +1,139 @@
+name: ihcl-hudiniservice
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+resources:
+  repositories:
+    - repository: ihcl-devops
+      endpoint: ihcl-devops-repo-endpoint
+      type: git
+      name: ihcl-devops
+      ref: $(devops-branch)
+
+variables:
+- name: ihclwebsites
+  value: 'ihclwebsites.azurecr.io'
+- name: ihcl-hudiniservice
+  value: 'ihcl-hudiniservice'
+- name: imageName
+  value: 'ihcl-hudiniservice'
+
+stages:
+- stage: 'Build'
+  displayName: "Build and Push"
+  jobs:
+  - job: 'BuildPush'
+    steps:
+    - task: SonarQubePrepare@4
+      condition: eq(variables['sonar-run-flag'], 'Y')
+      inputs:
+        SonarQube: 'IHCL-Sonar'
+        scannerMode: 'CLI'
+        configMode: 'manual'
+        cliProjectKey: 'ihcl-hudini'
+        cliSources: '.'
+
+    - task: SonarQubeAnalyze@4
+      condition: eq(variables['sonar-run-flag'], 'Y')
+      
+
+    - task: SonarQubePublish@4
+      condition: eq(variables['sonar-run-flag'], 'Y')
+      inputs:
+       pollingTimeoutSec: '300'
+  
+
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: |
+          short_hash=$(git rev-parse --short=7 HEAD)
+          mkdir -p $(Pipeline.Workspace)/variables
+          echo "$short_hash" > $(Pipeline.Workspace)/variables/short_hash
+          echo "##vso[task.setvariable variable=short_hash]$short_hash"
+    - task: CopyFiles@2
+      displayName: 'copying values to $(Build.ArtifactStagingDirectory)'
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)'
+        flattenFolders: true
+        Contents: |
+         charts/hudiniservice/values/**
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact:Helm values files'
+      inputs:
+       ArtifactName: 'IHCL-HELM-VALUES'
+    
+    - task: Docker@2
+      displayName: 'docker build and push'
+      inputs:
+        command: buildAndPush
+        repository: "$(imageName)"
+        dockerfile: "$(System.DefaultWorkingDirectory)/Dockerfile"
+        buildContext: "$(System.DefaultWorkingDirectory)"
+        containerRegistry: "$(azureContainerRegServiceConn)"
+        tags: $(short_hash)
+    
+  
+    #- task: SonarQubePublish@4
+     # inputs:
+      #  pollingTimeoutSec: '300'   
+    
+    - publish: $(Pipeline.Workspace)/variables
+      artifact: variables
+      displayName: Publish Docker Image Tag
+
+
+- stage: deploy
+  dependsOn:
+  - Build
+  displayName: Deploy
+  jobs:
+  - deployment: 'Deploy'
+    #variables:
+    #- group: nonprodvariablegroup
+    environment: $(environment_type)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: ihcl-devops
+          - download: current
+            artifact: variables
+
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download Build Artifact'
+            inputs:
+             artifactName: 'IHCL-HELM-VALUES'
+
+          - task: CopyFiles@2
+            displayName: 'Copy Files to :$(System.DefaultWorkingDirectory)'
+            condition: ne(variables['env'], 'prod')
+            inputs:
+             SourceFolder: '$(Build.ArtifactStagingDirectory)/IHCL-HELM-VALUES'
+             Contents: |
+              values-$(env).yaml
+             TargetFolder: '$(System.DefaultWorkingDirectory)/charts/hudiniservice/values/'
+          - task: Bash@3
+            displayName: Get Docker ImageTag
+            inputs:
+             targetType: 'inline'
+             script: |
+                short_hash=$(cat $(Pipeline.Workspace)/variables/short_hash)
+                echo "##vso[task.setvariable variable=short_hash]$short_hash"        
+          - task: HelmDeploy@0
+            displayName: deploy chart to aks
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: "$(azure-aks-cluster-svcConn)"
+              azureResourceGroup: "$(resource_group)"
+              kubernetesCluster: $(aks_name)
+              namespace: '$(env)'
+              command: 'upgrade'
+              waitForExecution: true
+              chartType: 'FilePath'
+              chartPath: "$(System.DefaultWorkingDirectory)/charts/hudiniservice/"
+              releaseName: 'ihcl-hudiniservice'
+              arguments: '--create-namespace  --set image.tag=$(short_hash)'
+              valueFile: $(System.DefaultWorkingDirectory)/charts/hudiniservice/values/values-$(env).yaml

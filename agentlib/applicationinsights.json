@@ -1,0 +1,82 @@
+{
+  "role": {
+    "name": "hudiniservice"
+  },
+  "sampling": {
+    "percentage": 100
+  },
+  "selfDiagnostics": {
+    "destination": "file",
+    "level": "DEBUG",
+    "file": {
+      "path": "/var/tmp/hudiniservice-applicationinsights.log",
+      "maxSizeMb": 5,
+      "maxHistory": 1
+    }
+  },
+  "preview": {
+    "captureControllerSpans": true
+  },
+  "jmxMetrics": [
+    {
+      "name": "JVM uptime (millis)",
+      "objectName": "java.lang:type=Runtime",
+      "attribute": "Uptime"
+    },
+    {
+      "name": "GC Thread Count",
+      "objectName": "java.lang:type=GarbageCollector,name=PS MarkSweep",
+      "attribute": "LastGcInfo.GcThreadCount"
+    },
+    {
+      "name": "GC Collection Count",
+      "objectName": "java.lang:type=GarbageCollector,name=PS MarkSweep",
+      "attribute": "CollectionCount"
+    },
+    {
+      "name": "Thread Count",
+      "objectName": "java.lang:type=Threading",
+      "attribute": "ThreadCount"
+    },
+    {
+      "name": "MetaSpace Used",
+      "objectName": "java.lang:type=MemoryPool,name=Metaspace",
+      "attribute": "Usage.used"
+    },
+    {
+      "name": "Heap Memory Used",
+      "objectName": "java.lang:type=Memory",
+      "attribute": "HeapMemoryUsage.used"
+    },
+    {
+      "name": "Non-Heap Memory Used",
+      "objectName": "java.lang:type=Memory",
+      "attribute": "NonHeapMemoryUsage.used"
+    },
+    {
+      "name": "PS Survivor Space",
+      "objectName": "java.lang:type=MemoryPool,name=PS Survivor Space",
+      "attribute": "Usage.used"
+    },
+    {
+      "name": "Old Generation Used",
+      "objectName": "java.lang:type=MemoryPool,name=PS Old Gen",
+      "attribute": "Usage.used"
+    },
+    {
+      "name": "Eden Space Used",
+      "objectName": "java.lang:type=MemoryPool,name=PS Eden Space",
+      "attribute": "Usage.used"
+    },
+    {
+      "name": "Code Cache Used",
+      "objectName": "java.lang:type=MemoryPool,name=Code Cache",
+      "attribute": "Usage.used"
+    },
+    {
+      "name": "Direct Memory Used",
+      "objectName": "java.nio:type=BufferPool,name=direct",
+      "attribute": "MemoryUsed"
+    }
+  ]
+}
